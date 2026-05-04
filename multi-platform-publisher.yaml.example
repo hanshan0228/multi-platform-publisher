@@ -1,0 +1,35 @@
+wechat:
+  default: main
+  accounts:
+    main:
+      name: "My WeChat Official Account"
+      app_id: "wx1234567890abcdef"
+      app_secret: "your_app_secret_here"
+      author: "Author Name"
+      theme: "refined-blue"
+      image_style: "hand-drawn-blue"
+      newspic_image_style: "infographic-warm"
+      sync_platforms: [zhihu, juejin]
+
+toutiao:
+  cookie_path: "C:/Users/you/.codex/data/toutiao/cookies.json"
+  data_dir: "C:/Users/you/.codex/data/toutiao"
+
+image_generation:
+  generator: "baoyu-image-gen"
+  provider_order: ["gemini-proxy", "gemini-official", "openai"]
+  openai:
+    api_key: "sk-..."
+    base_url: "https://api.openai.com/v1"
+    image_model: "gpt-image-1"
+  gemini_proxy:
+    base_url: "https://website-data-analysis.replit.app"
+    api_key: "cr_..."
+    image_model: "gemini-3-pro-image-preview"
+  gemini_official:
+    api_key: "AIza..."
+    base_url: "https://generativelanguage.googleapis.com/v1beta"
+    image_model: "gemini-2.5-flash-image-preview"
+
+integrations:
+  wechatsync_mcp_token: ""
