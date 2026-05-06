@@ -1,5 +1,17 @@
 wechat:
   default: main
+  publish:
+    default_mode: "auto"
+    fallback_order: ["api", "browser"]
+  browser:
+    enabled: false
+    profile_dir: "C:/Users/you/Desktop/ai/multi-platform-publisher/.tmp/wechat-browser-profile"
+    browser_path: ""
+    headless: false
+    login_timeout: 180
+    action_timeout: 30
+    startup_url: "https://mp.weixin.qq.com/"
+    editor_url: "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&type=10&isNew=1&lang=zh_CN"
   accounts:
     main:
       name: "My WeChat Official Account"
@@ -14,6 +26,15 @@ wechat:
 toutiao:
   cookie_path: "C:/Users/you/.codex/data/toutiao/cookies.json"
   data_dir: "C:/Users/you/.codex/data/toutiao"
+
+xiaohongshu:
+  skill_root: "C:/Users/you/Desktop/ai/.tmp/xiaohongshu-skills-inspect"
+  default_mode: "fill"
+  bridge_url: "ws://localhost:9333"
+  browser_executable: "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+  browser_profile_dir: "C:/Users/you/Desktop/ai/.tmp/xhs-edge-profile"
+  extension_path: "C:/Users/you/Desktop/ai/.tmp/xiaohongshu-skills-inspect/extension"
+  default_tags: ["AI工具", "效率提升"]
 
 image_generation:
   generator: "baoyu-image-gen"

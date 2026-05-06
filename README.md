@@ -1,126 +1,128 @@
 # multi-platform-publisher
 
-A cleaned-up standalone project for publishing Chinese content to:
+A standalone project for publishing Chinese content to:
 
-- WeChat Official Accounts draft box
+- WeChat Official Accounts drafts
 - Toutiao micro posts
-
-This project was extracted from a larger workspace and keeps only the code needed for those two publishing flows.
+- Xiaohongshu posts and drafts
 
 ## Features
 
-- Publish Markdown content to WeChat drafts
+- Publish Markdown or HTML into WeChat drafts
+- Support WeChat `api`, `browser`, and `auto` publish modes
+- Keep WeChat browser login state in a persistent profile directory
 - Convert Markdown to WeChat-compatible inline HTML
-- Upload WeChat cover and inline images
 - Publish Toutiao micro posts from `brief.md + images/`
-- Reuse local Toutiao login cookies
-- Keep WeChat and Toutiao publishing in one repository with one config file
+- Wrap Xiaohongshu browser automation for fill, draft, and publish flows
 
 ## Project Layout
 
 ```text
 multi-platform-publisher/
   assets/
-    themes/
-    image-styles/
   examples/
-    brief-demo/
   scripts/
     publish.py
+    publish_wechat_api.py
+    publish_wechat_browser.py
+    publish_wechat_router.py
     publish_toutiao_micro.py
-    wechat_api.py
-    wechat_token.py
-    api.py
+    publish_xiaohongshu.py
     config.py
-    html_converter.py
-    image_handler.py
-    ai_score.py
-    newspic_build.py
-    toutiao_micro.py
-    toutiao_micro_publish.cjs
-    toutiao_micro_publish_helpers.cjs
+    wechat_api.py
   tests/
-  publish_wechat.py
-  publish_toutiao.py
+  publish.py
+  publish_xiaohongshu.py
   multi-platform-publisher.yaml.example
   requirements.txt
 ```
 
 ## Setup
 
-1. Install Python dependencies:
-
 ```bash
 pip install -r requirements.txt
-```
-
-2. Copy the config template:
-
-```bash
 copy multi-platform-publisher.yaml.example multi-platform-publisher.yaml
 ```
 
-3. Fill in your WeChat app credentials and Toutiao cookie path.
+Then fill:
 
-## WeChat Usage
+- `wechat.accounts.*` for API publishing
+- `wechat.publish` for default mode and fallback order
+- `wechat.browser` for browser draft publishing
+- `toutiao` and `xiaohongshu` only if you use those platforms
 
-Publish Markdown to the WeChat draft box:
+## Unified Entry
 
 ```bash
-python publish_wechat.py --input article.md --cover cover.jpg --account main
+python publish.py wechat --input article.md --cover cover.jpg --account main
+python publish.py toutiao --brief examples/brief-demo/brief.md
+python publish.py xiaohongshu publish --input ../xhs-posts/ai-tools-guide --dry-run
 ```
 
-Or directly:
+## WeChat
+
+API mode:
 
 ```bash
-python scripts/publish.py --input article.md --cover cover.jpg --account main
+python publish.py wechat --input article.md --cover cover.jpg --publish-mode api
 ```
 
-## Toutiao Usage
-
-Publish a micro post from a `brief.md + images/` directory:
+Browser mode:
 
 ```bash
-python publish_toutiao.py --brief examples/brief-demo/brief.md
+python publish.py wechat --input article.md --cover cover.jpg --publish-mode browser
 ```
 
-Dry run:
+Auto fallback:
 
 ```bash
+python publish.py wechat --input article.md --cover cover.jpg --publish-mode auto
+```
+
+You can also call the lower-level script directly:
+
+```bash
+python scripts/publish.py --input article.md --cover cover.jpg --account main --publish-mode auto
+```
+
+Browser mode notes:
+
+- first login requires scanning the QR code in the persistent browser profile
+- the script reuses the `token` from the logged-in WeChat backend URL to open the real editor page
+- `auto` tries the configured fallback order, so API failure can fall back to browser draft save
+
+## Toutiao
+
+```bash
+python publish.py toutiao --brief examples/brief-demo/brief.md
 python publish_toutiao.py --brief examples/brief-demo/brief.md --dry-run
 ```
 
-## Config
+## Xiaohongshu
 
-The project reads:
+```bash
+python publish.py xiaohongshu check-login
+python publish.py xiaohongshu publish --input ../xhs-posts/ai-tools-guide --mode fill
+python publish.py xiaohongshu publish --input ../xhs-posts/ai-tools-guide --mode fill --save-draft
+python publish.py xiaohongshu click-publish
+```
 
-- `multi-platform-publisher.yaml`
-- falls back to `wechat-publisher.yaml` for compatibility if needed
+You can also override images and tags:
 
-The config is split into:
-
-- `wechat`
-- `toutiao`
-- `image_generation`
-- `integrations`
+```bash
+python publish.py xiaohongshu publish --input post-dir --images-dir post-dir/images --tags 旅行攻略 黄山 呈坎
+```
 
 ## Tests
 
-Python tests:
-
 ```bash
-pytest tests/test_config.py tests/test_html_converter.py tests/test_ai_score.py
+pytest tests/test_config.py tests/test_wechat_publish_router.py tests/test_html_converter.py tests/test_ai_score.py tests/test_xiaohongshu_publish.py -q
 python -m unittest tests.test_toutiao_micro -v
-```
-
-Node test:
-
-```bash
 node tests/test_toutiao_micro_publish.cjs
 ```
 
 ## Notes
 
-- Toutiao publishing depends on a working global `toutiao-mcp` installation and Playwright browser runtime.
-- The repository does not include live credentials or cookies.
-- The old generated/demo content was reduced to a single example under `examples/brief-demo/`.
+- keep your real `multi-platform-publisher.yaml` out of git
+- browser publishing needs Playwright plus a local Chromium-compatible browser
+- the browser path in config can stay empty if Playwright-managed Chromium is enough for your setup

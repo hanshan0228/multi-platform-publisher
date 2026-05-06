@@ -266,3 +266,114 @@ def test_get_toutiao_config_reads_nested_section(write_config_yaml):
     toutiao_cfg = config.get_toutiao_config()
     assert toutiao_cfg["cookie_path"].endswith("cookies.json")
     assert toutiao_cfg["data_dir"].endswith("toutiao")
+
+
+def test_get_publish_config_defaults_when_missing(write_config_yaml):
+    write_config_yaml(
+        textwrap.dedent(
+            """\
+            wechat:
+              default: main
+              accounts:
+                main:
+                  name: "Main"
+                  app_id: "wx_abc"
+                  app_secret: "sec"
+                  author: "x"
+            """
+        )
+    )
+
+    import config
+
+    publish_cfg = config.get_publish_config()
+    assert publish_cfg["default_mode"] == "auto"
+    assert publish_cfg["fallback_order"] == ["api", "browser"]
+
+
+def test_get_publish_config_reads_nested_wechat_yaml(write_config_yaml):
+    write_config_yaml(
+        textwrap.dedent(
+            """\
+            wechat:
+              default: main
+              publish:
+                default_mode: browser
+                fallback_order: "browser, api"
+              accounts:
+                main:
+                  name: "Main"
+                  app_id: "wx_abc"
+                  app_secret: "sec"
+                  author: "x"
+            """
+        )
+    )
+
+    import config
+
+    publish_cfg = config.get_publish_config()
+    assert publish_cfg["default_mode"] == "browser"
+    assert publish_cfg["fallback_order"] == ["browser", "api"]
+
+
+def test_get_wechat_browser_config_defaults(write_config_yaml):
+    write_config_yaml(
+        textwrap.dedent(
+            """\
+            wechat:
+              default: main
+              accounts:
+                main:
+                  name: "Main"
+                  app_id: "wx_abc"
+                  app_secret: "sec"
+                  author: "x"
+            """
+        )
+    )
+
+    import config
+
+    browser_cfg = config.get_wechat_browser_config()
+    assert browser_cfg["enabled"] is False
+    assert browser_cfg["headless"] is False
+    assert browser_cfg["login_timeout"] == 180
+    assert browser_cfg["action_timeout"] == 30
+    assert browser_cfg["profile_dir"]
+    assert browser_cfg["startup_url"].startswith("https://mp.weixin.qq.com/")
+
+
+def test_get_wechat_browser_config_reads_nested_wechat_yaml(write_config_yaml, tmp_path):
+    profile_dir = tmp_path / "wechat-profile"
+    write_config_yaml(
+        textwrap.dedent(
+            f"""\
+            wechat:
+              default: main
+              browser:
+                enabled: true
+                profile_dir: "{profile_dir.as_posix()}"
+                browser_path: "C:/Program Files/Google/Chrome/Application/chrome.exe"
+                headless: true
+                login_timeout: 240
+                action_timeout: 45
+              accounts:
+                main:
+                  name: "Main"
+                  app_id: "wx_abc"
+                  app_secret: "sec"
+                  author: "x"
+            """
+        )
+    )
+
+    import config
+
+    browser_cfg = config.get_wechat_browser_config()
+    assert browser_cfg["enabled"] is True
+    assert browser_cfg["profile_dir"] == str(profile_dir)
+    assert browser_cfg["browser_path"].endswith("chrome.exe")
+    assert browser_cfg["headless"] is True
+    assert browser_cfg["login_timeout"] == 240
+    assert browser_cfg["action_timeout"] == 45

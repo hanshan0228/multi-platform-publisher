@@ -115,6 +115,14 @@ def _get_wechat_root(cfg: Dict[str, Any]) -> Dict[str, Any]:
     return cfg
 
 
+def _normalize_string_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(",") if part.strip()]
+    if isinstance(value, list):
+        return [str(part).strip() for part in value if str(part).strip()]
+    return []
+
+
 def list_accounts() -> List[Dict[str, Any]]:
     cfg = _load_config_yaml()
     if not cfg:
@@ -187,13 +195,7 @@ def get_config(account_name: Optional[str] = None) -> Dict[str, Any]:
     if not app_id or not app_secret:
         raise ConfigError(f"WeChat account '{account_name}' is missing app_id or app_secret")
 
-    sync_platforms = acc.get("sync_platforms")
-    if isinstance(sync_platforms, str):
-        sync_platforms = [part.strip() for part in sync_platforms.split(",") if part.strip()]
-    elif isinstance(sync_platforms, list):
-        sync_platforms = [str(part).strip() for part in sync_platforms if str(part).strip()]
-    else:
-        sync_platforms = None
+    sync_platforms = _normalize_string_list(acc.get("sync_platforms")) or None
 
     image_generation = cfg.get("image_generation") or {}
     if not isinstance(image_generation, dict):
@@ -214,6 +216,65 @@ def get_config(account_name: Optional[str] = None) -> Dict[str, Any]:
     }
 
 
+def get_publish_config() -> Dict[str, Any]:
+    cfg = _load_config_yaml() or {}
+    wechat_cfg = _get_wechat_root(cfg)
+
+    publish_cfg = wechat_cfg.get("publish") or cfg.get("publish") or {}
+    if not isinstance(publish_cfg, dict):
+        publish_cfg = {}
+
+    default_mode = str(publish_cfg.get("default_mode") or "auto").strip().lower() or "auto"
+    if default_mode not in {"api", "browser", "auto"}:
+        default_mode = "auto"
+
+    fallback_order = _normalize_string_list(publish_cfg.get("fallback_order")) or ["api", "browser"]
+    fallback_order = [mode.lower() for mode in fallback_order if mode.lower() in {"api", "browser"}]
+    if not fallback_order:
+        fallback_order = ["api", "browser"]
+
+    return {
+        "default_mode": default_mode,
+        "fallback_order": fallback_order,
+    }
+
+
+def get_wechat_browser_config() -> Dict[str, Any]:
+    cfg = _load_config_yaml() or {}
+    wechat_cfg = _get_wechat_root(cfg)
+
+    browser_cfg = (
+        wechat_cfg.get("browser")
+        or wechat_cfg.get("wechat_browser")
+        or cfg.get("wechat_browser")
+        or {}
+    )
+    if not isinstance(browser_cfg, dict):
+        browser_cfg = {}
+
+    root_dir = Path(__file__).resolve().parents[1]
+    default_profile_dir = root_dir / ".tmp" / "wechat-browser-profile"
+
+    profile_dir = browser_cfg.get("profile_dir") or default_profile_dir
+    browser_path = str(browser_cfg.get("browser_path") or "").strip()
+    startup_url = str(browser_cfg.get("startup_url") or "https://mp.weixin.qq.com/").strip()
+    editor_url = str(
+        browser_cfg.get("editor_url")
+        or "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&type=10&isNew=1&lang=zh_CN"
+    ).strip()
+
+    return {
+        "enabled": bool(browser_cfg.get("enabled", False)),
+        "profile_dir": str(Path(profile_dir).expanduser()),
+        "browser_path": browser_path,
+        "headless": bool(browser_cfg.get("headless", False)),
+        "login_timeout": int(browser_cfg.get("login_timeout") or 180),
+        "action_timeout": int(browser_cfg.get("action_timeout") or 30),
+        "startup_url": startup_url,
+        "editor_url": editor_url,
+    }
+
+
 def get_toutiao_config() -> Dict[str, Any]:
     cfg = _load_config_yaml() or {}
     toutiao_cfg = cfg.get("toutiao") or {}
@@ -228,6 +289,42 @@ def get_toutiao_config() -> Dict[str, Any]:
     return {
         "cookie_path": str(Path(cookie_path).expanduser()),
         "data_dir": str(Path(data_dir).expanduser()),
+    }
+
+
+def get_xiaohongshu_config() -> Dict[str, Any]:
+    cfg = _load_config_yaml() or {}
+    xiaohongshu_cfg = cfg.get("xiaohongshu") or {}
+    if not isinstance(xiaohongshu_cfg, dict):
+        xiaohongshu_cfg = {}
+
+    default_skill_root = (
+        Path(__file__).resolve().parents[2] / ".tmp" / "xiaohongshu-skills-inspect"
+    )
+
+    skill_root = xiaohongshu_cfg.get("skill_root") or default_skill_root
+    default_mode = str(xiaohongshu_cfg.get("default_mode") or "fill").strip() or "fill"
+    bridge_url = str(xiaohongshu_cfg.get("bridge_url") or "ws://localhost:9333").strip()
+    browser_executable = str(xiaohongshu_cfg.get("browser_executable") or "").strip()
+    browser_profile_dir = str(xiaohongshu_cfg.get("browser_profile_dir") or "").strip()
+    extension_path = str(xiaohongshu_cfg.get("extension_path") or "").strip()
+    tags = xiaohongshu_cfg.get("default_tags") or []
+
+    if isinstance(tags, str):
+        tags = [part.strip() for part in tags.split(",") if part.strip()]
+    elif isinstance(tags, list):
+        tags = [str(part).strip() for part in tags if str(part).strip()]
+    else:
+        tags = []
+
+    return {
+        "skill_root": str(Path(skill_root).expanduser()),
+        "default_mode": default_mode,
+        "bridge_url": bridge_url,
+        "browser_executable": browser_executable,
+        "browser_profile_dir": browser_profile_dir,
+        "extension_path": extension_path,
+        "default_tags": tags,
     }
 
 
